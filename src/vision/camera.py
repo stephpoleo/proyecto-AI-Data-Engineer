@@ -1,6 +1,14 @@
 import cv2
 
-from .config import CAM_INDEX, FRAME_WIDTH, FRAME_HEIGHT, WINDOW_TITLE
+from .config import (
+    CAM_INDEX,
+    FRAME_WIDTH,
+    FRAME_HEIGHT,
+    WINDOW_TITLE,
+    BOX_COLOR,
+    FONT_COLOR,
+)
+from .model import YoloModel
 
 
 def open_camera(
@@ -37,14 +45,46 @@ def preview_loop(
 
     while True:
         ret, frame = cap.read()
+
         if not ret:
             print("Could not read a frame from the camera.")
             break
+
+        yolo_model = YoloModel()
+        detection_result = yolo_model.run_inference_on_frame(frame)
+
+        if detection_result is not None:
+            class_name, confidence, (x_min, y_min, x_max, y_max) = detection_result
+            draw_detection_box(
+                frame, (x_min, y_min, x_max, y_max), class_name, confidence
+            )
 
         cv2.imshow(window_title, frame)
 
         if cv2.waitKey(1) & 0xFF == ord(exit_key):
             break
+
+
+def draw_detection_box(
+    frame,
+    box: tuple[int, int, int, int],
+    class_name: str,
+    confidence: float,
+) -> None:
+    """
+    Draw detection box and class name on the frame.
+    """
+    x1, y1, x2, y2 = box
+    cv2.rectangle(frame, (x1, y1), (x2, y2), BOX_COLOR, 3)
+
+    org = [x1, y1]
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    fontScale = 1
+    thickness = 2
+
+    cv2.putText(
+        frame, f"{class_name} {confidence}", org, font, fontScale, FONT_COLOR, thickness
+    )
 
 
 def release_camera(cap: cv2.VideoCapture) -> None:
