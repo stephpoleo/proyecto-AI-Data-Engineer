@@ -35,10 +35,13 @@ class ETL:
 
         df = self.normalize_data(df)
         df = self.cast_data_types(df)
+        df = self.create_feature_engineering_columns(df)
         return df
 
     def load(self, df: pd.DataFrame):
-        pass
+        output_file = Path(self.output_path) / "etl_output.csv"
+        df.to_csv(output_file, index=False)
+        print(f"Dataframe cargado en {output_file} con {df.shape[0]} filas.")
 
     @staticmethod
     def has_nulls(df: pd.DataFrame) -> bool:
@@ -144,6 +147,9 @@ class ETL:
     def normalize_data(df: pd.DataFrame) -> pd.DataFrame:
         df = df.fillna({"class_name": "unknown"})
         df["detection_id"] = df["detection_id"].str.lower().replace(" ", "_")
+        df["bbox_area_ratio"] = df["bbox_area_ratio"].round(3)
+        df["center_x_norm"] = df["center_x_norm"].round(3)
+        df["center_y_norm"] = df["center_y_norm"].round(3)
         df["timestamp_sec"] = df["timestamp_sec"].round(3)
         return df
 
@@ -187,5 +193,20 @@ class ETL:
         df[float_cols] = df[float_cols].astype("float32")
 
         df["ingestion_date"] = pd.to_datetime(df["ingestion_date"])
+
+        return df
+
+    @staticmethod
+    def create_feature_engineering_columns(df: pd.DataFrame) -> pd.DataFrame:
+        """Create additional feature engineering columns."""
+        df["is_large_object"] = (df["bbox_area_ratio"] > 0.3).astype("int8")
+        df["is_high_conf"] = (df["confidence"] >= 0.7).astype("int8")
+
+        df["time_window_10s"] = df.apply(
+            lambda row: (row["timestamp_sec"] // 10)
+            if row["source_type"] != "image"
+            else 0,
+            axis=1,
+        ).astype("int32")
 
         return df
