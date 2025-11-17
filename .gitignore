@@ -1,3 +1,8 @@
 venv/
 models/
 src/vision/__pycache__/
+images/
+videos/
+output/
+data/input/images/.DS_Store
+data/input/videos/.DS_Store
