@@ -74,9 +74,6 @@ class YoloModel:
                 cls = int(box.cls[0])
                 class_name = self.class_names.get(cls, str(cls))
 
-                if confidence < 0.5:
-                    continue
-
                 if class_name not in ALLOWED_CLASSES:
                     continue
 

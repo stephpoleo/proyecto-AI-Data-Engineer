@@ -332,6 +332,7 @@ def create_detection_dataframe_schema() -> list:
         list: List of column names for the detection dataframe
     """
     return [
+        "detection_id",
         "source_type",
         "source_id",
         "frame_number",
@@ -358,6 +359,7 @@ def create_detection_dataframe_schema() -> list:
         "dom_g",
         "dom_b",
         "timestamp_sec",
+        "ingestion_date",
     ]
 
 
@@ -442,9 +444,12 @@ def add_detection_to_dataframe(
     bbox_attrs = calculate_bbox_attributes(bbox, frame.shape)
     color_attrs = calculate_dominant_color(frame, bbox)
 
+    detection_id = f"{source_id}_{frame_counter}"
     timestamp_sec = time.time() - start_time
+    ingestion_date = time.strftime("%Y-%m-%d", time.localtime())
 
     new_row = {
+        "detection_id": detection_id,
         "source_type": source_type,
         "source_id": source_id,
         "frame_number": frame_counter,
@@ -452,6 +457,7 @@ def add_detection_to_dataframe(
         "class_name": class_name,
         "confidence": confidence,
         "timestamp_sec": timestamp_sec,
+        "ingestion_date": ingestion_date,
         **bbox_attrs,
         **color_attrs,
     }
