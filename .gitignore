@@ -2,7 +2,7 @@ venv/
 models/
 src/vision/__pycache__/
 src/etl/__pycache__/
-test/__pycache__/
+tests/__pycache__/
 images/
 videos/
 output/
