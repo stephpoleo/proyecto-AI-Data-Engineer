@@ -58,9 +58,50 @@ def sql_literal(v):
     s = str(v).replace("'", "''")
     return f"'{s}'"
 
+def filter_already_existing_detections(conn, df: pd.DataFrame, debug: bool = False) -> pd.DataFrame:
+    """
+    Devuelve solo las filas cuyo detection_id NO existe en yolo_objects.
+    Usa la conexión abierta a Hive (conn).
+    """
+    if df.empty:
+        return df
+
+    ids = df["detection_id"].dropna().unique().tolist()
+    existing_ids: set[str] = set()
+
+    cur = conn.cursor()
+
+    chunk_size = 500
+    for i in range(0, len(ids), chunk_size):
+        chunk = ids[i : i + chunk_size]
+        id_list = ", ".join(sql_literal(x) for x in chunk)
+        query = f"""
+            SELECT detection_id
+            FROM yolo_objects
+            WHERE detection_id IN ({id_list})
+        """
+        cur.execute(query)
+        for row in cur.fetchall():
+            existing_ids.add(row[0])
+
+    cur.close()
+
+    if debug:
+        print(f"[Hive] detection_id ya existentes en Hive: {len(existing_ids)}")
+
+    mask_new = ~df["detection_id"].isin(existing_ids)
+    df_masked = df[mask_new].copy()
+
+    if debug:
+        print(f"[Hive] Nuevas detecciones a insertar: {len(df_masked)} de {len(df)}")
+
+    return df_masked
+
 def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
     conn = get_hive_connection()
     cur = conn.cursor()
+
+    df_final = filter_already_existing_detections(conn, df, debug=debug)
 
     table_name = "yolo_objects"
 
@@ -76,7 +117,7 @@ def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
         "is_large_object, is_high_conf, time_window_10s"
     )
 
-    for window, chunk in df.groupby("time_window_10s"):
+    for window, chunk in df_final.groupby("time_window_10s"):
         print(f"Enviando ventana {window} ({len(chunk)} filas)...")
 
         values_sql = []
