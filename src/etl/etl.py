@@ -1,6 +1,11 @@
 import pandas as pd
 from pathlib import Path
-from .warehouse import init_hive_schema, insert_into_hive, run_hive_analytics, clear_yolo_table
+from .warehouse import (
+    init_hive_schema,
+    insert_into_hive,
+    run_hive_analytics,
+    clear_yolo_table,
+)
 
 
 class ETL:
@@ -206,9 +211,9 @@ class ETL:
         df["is_high_conf"] = (df["confidence"] >= 0.7).astype("int8")
 
         df["time_window_10s"] = df.apply(
-            lambda row: (row["timestamp_sec"] // 10)
-            if row["source_type"] != "image"
-            else 0,
+            lambda row: (
+                (row["timestamp_sec"] // 10) if row["source_type"] != "image" else 0
+            ),
             axis=1,
         ).astype("int32")
 

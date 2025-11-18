@@ -12,14 +12,17 @@ HIVE_CONN_ARGS = dict(
 
 SQL_QUERIES_DIR = Path(__file__).resolve().parent / "queries"
 
+
 def get_hive_connection():
     return hive.Connection(**HIVE_CONN_ARGS)
+
 
 def load_sql(filename: str) -> str:
     """Lee un archivo .sql desde src/etl/sql/."""
     path = SQL_QUERIES_DIR / filename
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
+
 
 def init_hive_schema() -> None:
     """
@@ -32,11 +35,7 @@ def init_hive_schema() -> None:
 
     sql_text = schema_path.read_text(encoding="utf-8")
 
-    statements = [
-        stmt.strip()
-        for stmt in sql_text.split(";")
-        if stmt.strip()
-    ]
+    statements = [stmt.strip() for stmt in sql_text.split(";") if stmt.strip()]
 
     conn = get_hive_connection()
     cur = conn.cursor()
@@ -50,6 +49,7 @@ def init_hive_schema() -> None:
     cur.close()
     conn.close()
 
+
 def sql_literal(v):
     if pd.isna(v):
         return "NULL"
@@ -58,7 +58,10 @@ def sql_literal(v):
     s = str(v).replace("'", "''")
     return f"'{s}'"
 
-def filter_already_existing_detections(conn, df: pd.DataFrame, debug: bool = False) -> pd.DataFrame:
+
+def filter_already_existing_detections(
+    conn, df: pd.DataFrame, debug: bool = False
+) -> pd.DataFrame:
     """
     Devuelve solo las filas cuyo detection_id NO existe en yolo_objects.
     Usa la conexión abierta a Hive (conn).
@@ -96,6 +99,7 @@ def filter_already_existing_detections(conn, df: pd.DataFrame, debug: bool = Fal
         print(f"[Hive] Nuevas detecciones a insertar: {len(df_masked)} de {len(df)}")
 
     return df_masked
+
 
 def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
     conn = get_hive_connection()
@@ -170,6 +174,7 @@ def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
     cur.close()
     conn.close()
 
+
 def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     """
     Ejecuta las consultas analíticas en Hive.
@@ -181,11 +186,11 @@ def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     cur = conn.cursor()
 
     queries = {
-        "Objects per class":    load_sql("objects_per_class.sql"),
-        "People per video":   load_sql("people_per_video.sql"),
-        "Mean area per class":  load_sql("bounding_box_mean_area_per_class.sql"),
-        "Colors per class":    load_sql("dominant_color_distrib.sql"),
-        "Objects per time window":  load_sql("objects_per_time_window.sql"),
+        "Objects per class": load_sql("objects_per_class.sql"),
+        "People per video": load_sql("people_per_video.sql"),
+        "Mean area per class": load_sql("bounding_box_mean_area_per_class.sql"),
+        "Colors per class": load_sql("dominant_color_distrib.sql"),
+        "Objects per time window": load_sql("objects_per_time_window.sql"),
     }
     resultados = {}
 
@@ -208,6 +213,7 @@ def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     cur.close()
     conn.close()
     return resultados
+
 
 def clear_yolo_table(debug: bool = False) -> None:
     """Borra todas las filas de yolo_objects pero deja la tabla viva."""

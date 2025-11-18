@@ -78,13 +78,13 @@ class MediaIO:
             print(f"Frame {self._frame_counter}: {detection_summary}")
 
     # ==================== CAMERA OPERATIONS ====================
-    
+
     @staticmethod
     def diagnose_cameras() -> list[int]:
         """Diagnose available cameras and return list of working indices."""
         working_cameras = []
         backends = [cv2.CAP_V4L2, cv2.CAP_DSHOW, cv2.CAP_ANY]
-        
+
         print("Scanning for available cameras...")
         for index in range(0, 10):  # Check indices 0-9
             for backend in backends:
@@ -92,17 +92,19 @@ class MediaIO:
                 if cap.isOpened():
                     ret, frame = cap.read()
                     if ret and frame is not None:
-                        print(f"✓ Camera {index} working (backend: {backend}, resolution: {frame.shape[1]}x{frame.shape[0]})")
+                        print(
+                            f"✓ Camera {index} working (backend: {backend}, resolution: {frame.shape[1]}x{frame.shape[0]})"
+                        )
                         working_cameras.append(index)
                         cap.release()
                         break  # Found working camera at this index
                 cap.release()
-        
+
         if not working_cameras:
             print("✗ No working cameras found")
         else:
             print(f"Found {len(working_cameras)} working camera(s): {working_cameras}")
-        
+
         return working_cameras
 
     def open_camera(
@@ -114,18 +116,20 @@ class MediaIO:
         """Open camera with specified dimensions."""
         # Try different backends in order of preference
         backends = [cv2.CAP_V4L2, cv2.CAP_DSHOW, cv2.CAP_ANY]
-        
+
         for backend in backends:
             cap = cv2.VideoCapture(index, backend)
             if cap.isOpened():
-                print(f"Camera opened successfully with backend {backend} and index {index}")
+                print(
+                    f"Camera opened successfully with backend {backend} and index {index}"
+                )
                 if width is not None:
                     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
                 if height is not None:
                     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
                 return cap
             cap.release()
-        
+
         # If all backends fail, try different indices
         print(f"Failed to open camera with index {index}. Trying other indices...")
         for test_index in range(0, 4):  # Try indices 0-3
@@ -139,8 +143,10 @@ class MediaIO:
                         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
                     return cap
                 cap.release()
-        
-        raise RuntimeError(f"Could not open any camera. Please check if a camera is connected and accessible.")
+
+        raise RuntimeError(
+            f"Could not open any camera. Please check if a camera is connected and accessible."
+        )
 
     def preview_camera_loop(
         self,
@@ -263,7 +269,7 @@ class MediaIO:
             print(f"Camera error: {e}")
             print("\nRunning camera diagnosis...")
             working_cameras = self.diagnose_cameras()
-            
+
             if working_cameras:
                 print(f"\nTrying to use camera {working_cameras[0]}...")
                 try:
@@ -275,7 +281,9 @@ class MediaIO:
                 print("\nNo cameras available. Please:")
                 print("1. Check if a camera is connected")
                 print("2. Check camera permissions")
-                print("3. If the code is running on WSL, switch to Windows or use a Linux environment")
+                print(
+                    "3. If the code is running on WSL, switch to Windows or use a Linux environment"
+                )
         except Exception as e:
             print(f"Unexpected error: {e}")
         finally:

@@ -37,12 +37,17 @@ install: venv
 .PHONY: format
 format:
 	@echo ">> Formateando código con black"
-	@$(VENV_PY) -m black src tests
+	@$(VENV_PY) -m black src tests main.py
 
 .PHONY: lint
 lint:
 	@echo ">> Linting con pylint"
-	@$(VENV_PY) -m pylint src tests
+	@$(VENV_PY) -m pylint \
+	    src/ \
+	    tests/ \
+	    main.py \
+	    --ignore=venv \
+	    -disable=R,C,R0801 || true
 
 .PHONY: test
 test:

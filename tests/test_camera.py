@@ -15,11 +15,13 @@ def test_diagnose_cameras_returns_list():
 
 
 def test_at_least_one_camera_if_available():
-    """ Goal: test that at least one camera is detected if available. If not, discard the test. """
+    """Goal: test that at least one camera is detected if available. If not, discard the test."""
     media_io = MediaIO()
     cameras = media_io.diagnose_cameras()
 
     if not cameras:
-        pytest.skip("No hay cámara disponible en este entorno (WSL, cambiar a Windows o Linux)")
+        pytest.skip(
+            "No hay cámara disponible en este entorno (WSL, cambiar a Windows o Linux)"
+        )
 
     assert len(cameras) > 0

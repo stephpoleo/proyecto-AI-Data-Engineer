@@ -1,6 +1,7 @@
 import pandas as pd
 from src.etl.etl import ETL
 
+
 def test_create_feature_engineering_columns_image():
     """Test feature engineering columns for image source type, which should set time_window_10s to 0."""
     df = pd.DataFrame(
