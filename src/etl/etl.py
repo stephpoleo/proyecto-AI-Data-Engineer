@@ -43,7 +43,7 @@ class ETL:
         init_hive_schema()
         if clear_first:
             clear_yolo_table(debug=True)
-        insert_into_hive(df, debug=True)
+        insert_into_hive(df, debug=False)
         run_hive_analytics(debug=True, print_results=True)
 
     @staticmethod

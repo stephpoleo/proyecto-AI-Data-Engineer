@@ -101,7 +101,7 @@ def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
     conn = get_hive_connection()
     cur = conn.cursor()
 
-    df_final = filter_already_existing_detections(conn, df, debug=debug)
+    df_final = filter_already_existing_detections(conn, df, debug=True)
 
     table_name = "yolo_objects"
 
@@ -181,9 +181,12 @@ def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     cur = conn.cursor()
 
     queries = {
-        "get_all_data":    load_sql("get_all_data.sql"),
+        "Objects per class":    load_sql("objects_per_class.sql"),
+        "People per video":   load_sql("people_per_video.sql"),
+        "Mean area per class":  load_sql("bounding_box_mean_area_per_class.sql"),
+        "Colors per class":    load_sql("dominant_color_distrib.sql"),
+        "Objects per time window":  load_sql("objects_per_time_window.sql"),
     }
-
     resultados = {}
 
     for name, sql in queries.items():
