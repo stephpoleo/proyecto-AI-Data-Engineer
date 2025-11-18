@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+from .warehouse import init_hive_schema, insert_into_hive, run_hive_analytics
 
 
 class ETL:
@@ -39,9 +40,9 @@ class ETL:
         return df
 
     def load(self, df: pd.DataFrame):
-        output_file = Path(self.output_path) / "etl_output.csv"
-        df.to_csv(output_file, index=False)
-        print(f"Dataframe cargado en {output_file} con {df.shape[0]} filas.")
+        init_hive_schema()
+        insert_into_hive(df, debug=True)
+        run_hive_analytics(debug=True, print_results=True)
 
     @staticmethod
     def has_nulls(df: pd.DataFrame) -> bool:
