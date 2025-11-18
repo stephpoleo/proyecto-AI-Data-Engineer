@@ -11,15 +11,19 @@ HIVE_CONN_ARGS = dict(
 )
 
 SQL_QUERIES_DIR = Path(__file__).resolve().parent / "queries"
+MAX_ROWS_PER_INSERT = 200
+
 
 def get_hive_connection():
     return hive.Connection(**HIVE_CONN_ARGS)
+
 
 def load_sql(filename: str) -> str:
     """Lee un archivo .sql desde src/etl/sql/."""
     path = SQL_QUERIES_DIR / filename
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
+
 
 def init_hive_schema() -> None:
     """
@@ -32,11 +36,7 @@ def init_hive_schema() -> None:
 
     sql_text = schema_path.read_text(encoding="utf-8")
 
-    statements = [
-        stmt.strip()
-        for stmt in sql_text.split(";")
-        if stmt.strip()
-    ]
+    statements = [stmt.strip() for stmt in sql_text.split(";") if stmt.strip()]
 
     conn = get_hive_connection()
     cur = conn.cursor()
@@ -50,6 +50,7 @@ def init_hive_schema() -> None:
     cur.close()
     conn.close()
 
+
 def sql_literal(v):
     if pd.isna(v):
         return "NULL"
@@ -58,7 +59,10 @@ def sql_literal(v):
     s = str(v).replace("'", "''")
     return f"'{s}'"
 
-def filter_already_existing_detections(conn, df: pd.DataFrame, debug: bool = False) -> pd.DataFrame:
+
+def filter_already_existing_detections(
+    conn, df: pd.DataFrame, debug: bool = False
+) -> pd.DataFrame:
     """
     Devuelve solo las filas cuyo detection_id NO existe en yolo_objects.
     Usa la conexión abierta a Hive (conn).
@@ -100,9 +104,6 @@ def filter_already_existing_detections(conn, df: pd.DataFrame, debug: bool = Fal
 def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
     conn = get_hive_connection()
     cur = conn.cursor()
-
-    df_final = filter_already_existing_detections(conn, df, debug=True)
-
     table_name = "yolo_objects"
 
     cols = (
@@ -117,58 +118,63 @@ def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
         "is_large_object, is_high_conf, time_window_10s"
     )
 
-    for window, chunk in df_final.groupby("time_window_10s"):
-        print(f"Enviando ventana {window} ({len(chunk)} filas)...")
+    for window, chunk in df.groupby("time_window_10s"):
+        print(f"[Hive] Ventana {window}: {len(chunk)} filas")
 
-        values_sql = []
+        # troceamos esta ventana en pedazos manejables
+        for start in range(0, len(chunk), MAX_ROWS_PER_INSERT):
+            sub = chunk.iloc[start : start + MAX_ROWS_PER_INSERT]
+            print(f"  -> Sub-batch {start}-{start+len(sub)-1} ({len(sub)} filas)")
 
-        for _, row in chunk.iterrows():
-            tup = (
-                row["detection_id"],
-                row["source_type"],
-                row["source_id"],
-                row["frame_number"],
-                row["class_id"],
-                row["class_name"],
-                row["confidence"],
-                row["x_min"],
-                row["y_min"],
-                row["x_max"],
-                row["y_max"],
-                row["width"],
-                row["height"],
-                row["area_pixels"],
-                row["frame_width"],
-                row["frame_height"],
-                row["bbox_area_ratio"],
-                row["center_x"],
-                row["center_y"],
-                row["center_x_norm"],
-                row["center_y_norm"],
-                row["position_region"],
-                row["dominant_color_name"],
-                row["dom_r"],
-                row["dom_g"],
-                row["dom_b"],
-                row["timestamp_sec"],
-                row["ingestion_date"],
-                int(row["is_large_object"]),
-                int(row["is_high_conf"]),
-                int(row["time_window_10s"]),
-            )
+            values_sql = []
+            for _, row in sub.iterrows():
+                tup = (
+                    row["detection_id"],
+                    row["source_type"],
+                    row["source_id"],
+                    int(row["frame_number"]),
+                    int(row["class_id"]),
+                    row["class_name"],
+                    float(row["confidence"]),
+                    int(row["x_min"]),
+                    int(row["y_min"]),
+                    int(row["x_max"]),
+                    int(row["y_max"]),
+                    int(row["width"]),
+                    int(row["height"]),
+                    int(row["area_pixels"]),
+                    int(row["frame_width"]),
+                    int(row["frame_height"]),
+                    float(row["bbox_area_ratio"]),
+                    int(row["center_x"]),
+                    int(row["center_y"]),
+                    float(row["center_x_norm"]),
+                    float(row["center_y_norm"]),
+                    row["position_region"],
+                    row["dominant_color_name"],
+                    int(row["dom_r"]),
+                    int(row["dom_g"]),
+                    int(row["dom_b"]),
+                    float(row["timestamp_sec"]),
+                    row["ingestion_date"],
+                    int(row["is_large_object"]),
+                    int(row["is_high_conf"]),
+                    int(row["time_window_10s"]),
+                )
 
-            literals = [sql_literal(v) for v in tup]
-            values_sql.append("(" + ", ".join(literals) + ")")
+                literals = [sql_literal(v) for v in tup]
+                values_sql.append("(" + ", ".join(literals) + ")")
 
-        query = f"INSERT INTO {table_name} ({cols}) VALUES " + ", ".join(values_sql)
+            query = f"INSERT INTO {table_name} ({cols}) VALUES " + ", ".join(values_sql)
+            if debug:
+                print(query[:500] + (" ... (truncado)" if len(query) > 500 else ""))
 
-        if debug:
-            print(query)
-
-        cur.execute(query)
+            cur.execute(query)
 
     cur.close()
     conn.close()
+
+
 
 def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     """
@@ -181,11 +187,11 @@ def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     cur = conn.cursor()
 
     queries = {
-        "Objects per class":    load_sql("objects_per_class.sql"),
-        "People per video":   load_sql("people_per_video.sql"),
-        "Mean area per class":  load_sql("bounding_box_mean_area_per_class.sql"),
-        "Colors per class":    load_sql("dominant_color_distrib.sql"),
-        "Objects per time window":  load_sql("objects_per_time_window.sql"),
+        "Objects per class": load_sql("objects_per_class.sql"),
+        "People per video": load_sql("people_per_video.sql"),
+        "Mean area per class": load_sql("bounding_box_mean_area_per_class.sql"),
+        "Colors per class": load_sql("dominant_color_distrib.sql"),
+        "Objects per time window": load_sql("objects_per_time_window.sql"),
     }
     resultados = {}
 
@@ -208,6 +214,7 @@ def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     cur.close()
     conn.close()
     return resultados
+
 
 def clear_yolo_table(debug: bool = False) -> None:
     """Borra todas las filas de yolo_objects pero deja la tabla viva."""

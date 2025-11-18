@@ -2,8 +2,8 @@ venv/
 models/
 src/vision/__pycache__/
 src/etl/__pycache__/
-images/
-videos/
-output/
+tests/__pycache__/
+output/*
+!output/.gitkeep
 data/input/images/.DS_Store
 data/input/videos/.DS_Store

@@ -14,7 +14,7 @@ ALLOWED_CLASSES = {
     "car",
     "backpack",
     "bottle",
-    "tv",  # OJO: en COCO es "tv", no "tvmonitor"
+    "tv",
     "laptop",
     "mouse",
     "remote",
@@ -23,6 +23,21 @@ ALLOWED_CLASSES = {
     "book",
     "toothbrush",
     "suitcase",
+    "chair",
+    "cat",
+    "dog",
+    "bench",
+    "toilet",
+    "cup",
+    "apple",
+    "clock",
+    "banana",
+    "broccoli",
+    "spoon",
+    "microwave",
+    "bottle",
+    "wine glass",
+    "dining table",
 }
 
 # Default colors
