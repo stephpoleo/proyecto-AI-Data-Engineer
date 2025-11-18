@@ -49,7 +49,7 @@ proyecto-AI-Data-Engineer/
 ├── main.py                     # Punto de entrada principal
 ├── requirements.txt            # Dependencias del proyecto
 ├── Makefile                   # Comandos de desarrollo
-├── test_camera.py            # Diagnóstico de cámaras
+├── test/                      # Pruebas unitarias de diferentes puntos del proyecto
 │
 ├── data/                      # Datos del proyecto
 │   ├── input/
@@ -83,9 +83,8 @@ proyecto-AI-Data-Engineer/
 │   │       ├── dominant_color_distrib.sql
 │   │       ├── objects_per_time_window.sql
 │   │       └── clear_table.sql
-│   │
-│   └── test/                # Pruebas unitarias
-│       └── test.py
+│ 
+│ 
 ```
 
 ---
@@ -342,18 +341,8 @@ HIVE_CONN_ARGS = {
 
 ### Parámetros de Procesamiento
 - **Umbral de confianza**: 0.5 (configurable)
-- **Tamaño de lote**: 500 detecciones por inserción
+- **Tamaño de lote**: 200 detecciones por inserción, subdivisiones a partir de ventanas de tiempo de 10 segundos.
 - **Resolución de cámara**: 640x480 (configurable)
-
----
-
-## 🏆 Casos de Uso
-
-1. **Monitoreo de Seguridad**: Detección de personas y objetos en tiempo real
-2. **Análisis de Tráfico**: Conteo y clasificación de vehículos
-3. **Inventario Inteligente**: Reconocimiento automático de productos
-4. **Análisis de Comportamiento**: Patrones de uso de dispositivos electrónicos
-5. **Control de Acceso**: Detección de objetos no permitidos
 
 ---
 

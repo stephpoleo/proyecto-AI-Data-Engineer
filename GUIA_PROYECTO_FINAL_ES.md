@@ -62,6 +62,10 @@ Este comando ejecutará:
 - ✅ Linting con Pylint  
 - ✅ Ejecución de pruebas unitarias
 
+Para aclarar dudas sobre los comandos del Make hacer:
+```bash
+make help
+```
 ---
 
 ## 🔧 Configuración Inicial
@@ -111,9 +115,6 @@ CAM_INDEX = 0  # Generalmente 0 para cámara integrada
 ```bash
 # Crear directorio y agregar imágenes
 mkdir -p data/input/images
-# REQUISITO: Mínimo 20 imágenes diferentes
-# REQUISITO: Imágenes deben ser capturadas por ti (no descargadas)
-# OBJETIVO: Detectar mínimo 15 objetos/características por imagen
 # Formatos: .jpg, .png, .bmp, etc.
 ```
 
@@ -121,22 +122,12 @@ mkdir -p data/input/images
 ```bash
 # Crear directorio y agregar videos  
 mkdir -p data/input/videos
-# REQUISITO: Mínimo 2 videos
-# REQUISITO: Videos deben contener personas
-# REQUISITO: Máximo 20 segundos o 50MB por video
-# REQUISITO: Videos capturados por ti (no descargados)
-# OBJETIVO: Detectar mínimo 10 objetos/características por video
 # Formatos: .mp4, .avi, .mov, etc.
 ```
 
 #### Para Cámara en Vivo (OPCIONAL):
 ```bash
 # No requiere archivos de entrada
-# REQUISITO: Informar qué tipo de cámara usarás:
-#   - Cámara USB
-#   - Cámara integrada (laptop/PC)
-#   - Cámara CSI (Raspberry Pi)
-#   - Cámara RTSP (IP camera)
 ```
 
 ---
@@ -216,11 +207,9 @@ run_classification_system(program_mode[1])  # Índice 1 = imágenes (DEFAULT)
 ```
 
 **Comportamiento:**
-- Procesa **al menos 20 imágenes** en `data/input/images/` (requisito del proyecto)
-- Debe detectar **mínimo 15 objetos/características** por imagen
+- Procesa **imágenes guardadas por el usuario** en `data/input/images/`
 - Muestra preview de cada detección con bounding boxes
 - Presiona `q` para continuar a la siguiente imagen
-- **Recomendado**: Usar imágenes **capturadas por ti mismo** (no descargadas)
 
 ### 🎬 Modo 2: Procesamiento de Videos (WSL/Linux Compatible)
 ```python  
@@ -229,9 +218,8 @@ run_classification_system(program_mode[2])  # Índice 2 = videos
 ```
 
 **Comportamiento:**
-- Procesa **mínimo 2 videos** en `data/input/videos/`
-- **Requisitos del proyecto**: Videos deben contener personas, máx. 20 seg o 50MB
-- Debe detectar **mínimo 10 objetos/características** por video
+- Procesa **videos guardados por el usuario** en `data/input/videos/`
+- **Requisitos del proyecto**: Videos deben tener una duración máx. 20 seg o 50MB
 - Detección frame por frame con análisis temporal
 - **Lotes de 10 segundos**: El sistema ETL envía datos cada 10 segundos de contenido
 - Preview en tiempo real del procesamiento
@@ -246,22 +234,6 @@ run_classification_system(program_mode[2])  # Índice 2 = videos
 #### CSV de Detecciones (Staging)
 ```bash
 data/output/detections_20251118_143052.csv
-```
-
-**Contenido ejemplo:**
-```csv
-detection_id,source_type,source_id,frame_number,class_name,confidence,x_min,y_min,x_max,y_max,...
-```
-
-#### Logs del Sistema ETL
-```bash
-[Hive] Ejecutando:
-CREATE DATABASE IF NOT EXISTS yolo_db
-
->> Dataframe cargado con 145 filas
->> Dataframe combinado con 145 filas totales
-[ETL] Filas iniciales: 145, después de transformación: 123
-Enviando ventana 168 (45 filas)...
 ```
 
 ### Consultas Analíticas Automáticas
@@ -383,19 +355,6 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 🚨 Error: "YOLO model not found"
-
-**Causa:** Modelo YOLO no descargado
-
-**Solución:**
-```bash
-# El modelo se descarga automáticamente la primera vez
-# Verificar que existe:
-ls models/yolov8n.pt
-
-# Si no existe, se descarga automáticamente al ejecutar
-```
-
 ### 🚨 Error: "No images/videos found"
 
 **Causa:** Directorios de entrada vacíos
@@ -442,60 +401,6 @@ resultados = run_hive_analytics(debug=True, print_results=True)
 
 ---
 
-## 📊 Interpretación de Resultados
-
-### Métricas Clave
-
-**Precision del Modelo:**
-- Confianza promedio > 0.7: Excelente
-- Confianza promedio > 0.5: Buena  
-- Confianza promedio < 0.5: Revisar calidad de entrada
-
-**Distribución de Clases:**
-- Verificar que las clases detectadas sean esperadas
-- Identificar clases predominantes en tu dataset
-
-**Análisis Temporal:**
-- Ventanas con más actividad indican eventos importantes
-- Útil para detectar patrones temporales
-
-### Dashboard Manual
-```bash
-# Ver últimas detecciones cargadas
-beeline -u "jdbc:hive2://localhost:10000" -n steph -e "
-USE yolo_db;
-SELECT * FROM yolo_objects 
-ORDER BY ingestion_date DESC 
-LIMIT 10;"
-```
-
----
-
-## 🎯 Casos de Uso Recomendados
-
-### 🏠 Monitoreo Doméstico
-```bash
-# Configurar para detectar personas y mascotas
-# Usar modo cámara en vivo
-# Revisar alertas en consultas automáticas
-```
-
-### 🏢 Análisis de Oficina
-```bash
-# Procesar videos de salas de reunión
-# Detectar laptops, personas, dispositivos
-# Usar consultas por ventana temporal
-```
-
-### 🚗 Análisis de Tráfico
-```bash
-# Configurar para detectar solo vehículos
-# Procesar videos de intersecciones
-# Analizar patrones por hora del día
-```
-
----
-
 ## 🆘 Soporte y Recursos
 
 ### 📖 Documentación de Referencia del Proyecto
@@ -524,22 +429,6 @@ Documentacion clases/finalproject/ProyectoEnEspanol.md
 4. Procesar CSV en WSL con sistema ETL
 ```
 
-### Logs del Sistema
-```bash
-# Los logs aparecen en consola durante ejecución
-# Para capturar logs:
-python main.py > log_ejecucion.txt 2>&1
-```
-
-### Estructura de Archivos de Configuración
-```bash
-src/vision/config.py     # Configuración de computer vision
-src/etl/config.py        # Configuración ETL  
-src/etl/warehouse.py     # Configuración Hive
-src/etl/queries/         # 5 consultas analíticas SQL requeridas
-main.py                  # CAMBIAR program_mode[X] aquí
-```
-
 ### Archivos de Referencia del Curso
 ```bash
 # El proyecto incluye ejemplos y guías en:
@@ -559,8 +448,6 @@ Documentacion clases/finalproject/
 - [ ] **Apache Hive** instalado y HiveServer2 activo (puerto 10000)
 - [ ] **Entorno virtual** creado (`make venv`)
 - [ ] **Dependencias instaladas** (`make install`)
-- [ ] **Mínimo 20 imágenes** en `data/input/images/` (capturadas por ti)
-- [ ] **Mínimo 2 videos** en `data/input/videos/` (con personas, <20s, <50MB)
 - [ ] **Configuración Hive** actualizada en `warehouse.py`
 - [ ] **Modo de ejecución** configurado en `main.py` (`program_mode[X]`)
 
@@ -569,12 +456,6 @@ Documentacion clases/finalproject/
 - [ ] **Carpeta tests/** con pruebas unitarias
 - [ ] **Espacio en disco suficiente** (>5GB recomendado)
 - [ ] **Conectividad de red** al cluster Hadoop/Hive
-
-### Para Modo Cámara (Opcional):
-- [ ] **Windows nativo disponible** (WSL no soporta cámaras)
-- [ ] **Cámara funcionando** (USB, integrada, CSI o RTSP)
-- [ ] **Permisos de cámara** configurados
-- [ ] **Plan de transferencia** CSV Windows → WSL
 
 ---
 
@@ -622,8 +503,6 @@ RESULTADOS: People per video
 0    video1.mp4           8
 1    video2.mp4           12
 ```
-
-**¡Tu pipeline de AI Data Engineering cumple con todas las especificaciones del proyecto final! 🚀**
 
 ### 🎯 **Validación de Cumplimiento:**
 - ✅ **Dos sistemas separados**: Clasificación + ETL independientes
