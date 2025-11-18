@@ -164,3 +164,17 @@ def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     cur.close()
     conn.close()
     return resultados
+
+def clear_yolo_table(debug: bool = False) -> None:
+    """Borra todas las filas de yolo_objects pero deja la tabla viva."""
+    conn = get_hive_connection()
+    cur = conn.cursor()
+
+    sql = load_sql("clear_table.sql")
+    if debug:
+        print(f"[Hive] Ejecutando: {sql}")
+
+    cur.execute(sql)
+
+    cur.close()
+    conn.close()
