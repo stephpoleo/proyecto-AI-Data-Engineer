@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+from .warehouse import init_hive_schema, insert_into_hive, run_hive_analytics, clear_yolo_table
 
 
 class ETL:
@@ -38,10 +39,12 @@ class ETL:
         df = self.create_feature_engineering_columns(df)
         return df
 
-    def load(self, df: pd.DataFrame):
-        output_file = Path(self.output_path) / "etl_output.csv"
-        df.to_csv(output_file, index=False)
-        print(f"Dataframe cargado en {output_file} con {df.shape[0]} filas.")
+    def load(self, df: pd.DataFrame, clear_first: bool = False) -> None:
+        init_hive_schema()
+        if clear_first:
+            clear_yolo_table(debug=True)
+        insert_into_hive(df, debug=False)
+        run_hive_analytics(debug=True, print_results=True)
 
     @staticmethod
     def has_nulls(df: pd.DataFrame) -> bool:
