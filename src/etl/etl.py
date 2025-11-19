@@ -28,14 +28,14 @@ class ETL:
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         initial_row_count = df.shape[0]
-
+        
         if self.has_nulls(df):
             df = self.remove_nulls(df)
-        else:
-            df = self.remove_invalid_coordinates(df)
-            df = self.remove_out_of_range_confidence(df)
-            df = self.filter_high_confidence(df, threshold=0.5)
-            df = self.detect_and_remove_duplicates(df)
+        
+        df = self.remove_invalid_coordinates(df)
+        df = self.remove_out_of_range_confidence(df)
+        df = self.filter_high_confidence(df, threshold=0.5)
+        df = self.detect_and_remove_duplicates(df)
 
         self._print_transformation_summary(initial_row_count, df.shape[0])
 
@@ -48,20 +48,25 @@ class ETL:
         init_hive_schema()
         if clear_first:
             clear_yolo_table(debug=True)
+        print("\nCargando datos transformados en Hive...")
         insert_into_hive(df, debug=False)
         run_hive_analytics(debug=True, print_results=True)
 
     @staticmethod
     def has_nulls(df: pd.DataFrame) -> bool:
-        return df.isnull().values.any()
+        has_nulls = df.isnull().values.any()
+        if has_nulls:
+            total_nulls = df.isnull().sum().sum()
+            total_cells = df.shape[0] * df.shape[1]
+            null_percentage = (total_nulls / total_cells) * 100
+            print(f"Dataset tiene {total_nulls} valores nulos de {total_cells} celdas totales ({null_percentage:.2f}%)")
+        return has_nulls
 
     @staticmethod
     def remove_nulls(df: pd.DataFrame) -> pd.DataFrame:
-        print("Dataframe contiene valores nulos. Eliminando filas con nulos...")
-        df_cleaned = df.dropna()
-        print(
-            f"Dataframe transformado con {df_cleaned.shape[0]} filas después de eliminar nulos."
-        )
+        print("Dataframe contiene valores nulos. Analizando y limpiando...")
+        critical_cols = ['detection_id', 'x_min', 'y_min', 'x_max', 'y_max']
+        df_cleaned = df.dropna(subset=critical_cols)
         return df_cleaned
 
     @staticmethod

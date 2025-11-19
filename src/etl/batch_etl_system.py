@@ -8,4 +8,7 @@ def run_batch_etl_system():
     etl = ETL(output_path="data/output/")
     data = etl.extract()
     transformed_data = etl.transform(data)
-    etl.load(transformed_data, clear_first=False)
+    if transformed_data.empty:
+        print("No hay datos para cargar después de la transformación.")
+        return
+    etl.load(transformed_data, clear_first=True)
