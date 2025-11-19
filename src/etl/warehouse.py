@@ -101,9 +101,13 @@ def filter_already_existing_detections(
 
     return df_masked
 
+
 def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
+    print("Iniciando inserción de datos en Hive...")
     conn = get_hive_connection()
     cur = conn.cursor()
+    df_final = filter_already_existing_detections(conn, df, debug=True)
+    print(f"Total de filas a insertar en Hive: {len(df_final)}")
     table_name = "yolo_objects"
 
     cols = (
@@ -118,10 +122,9 @@ def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
         "is_large_object, is_high_conf, time_window_10s"
     )
 
-    for window, chunk in df.groupby("time_window_10s"):
+    for window, chunk in df_final.groupby("time_window_10s"):
         print(f"[Hive] Ventana {window}: {len(chunk)} filas")
 
-        # troceamos esta ventana en pedazos manejables
         for start in range(0, len(chunk), MAX_ROWS_PER_INSERT):
             sub = chunk.iloc[start : start + MAX_ROWS_PER_INSERT]
             print(f"  -> Sub-batch {start}-{start+len(sub)-1} ({len(sub)} filas)")
@@ -175,7 +178,6 @@ def insert_into_hive(df: pd.DataFrame, debug: bool = False) -> None:
     conn.close()
 
 
-
 def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
     """
     Ejecuta las consultas analíticas en Hive.
@@ -218,6 +220,7 @@ def run_hive_analytics(debug: bool = False, print_results: bool = True) -> dict:
 
 def clear_yolo_table(debug: bool = False) -> None:
     """Borra todas las filas de yolo_objects pero deja la tabla viva."""
+    print("Limpiando tabla yolo_objects en Hive de todas sus filas...")
     conn = get_hive_connection()
     cur = conn.cursor()
 
