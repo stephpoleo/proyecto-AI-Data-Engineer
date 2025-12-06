@@ -7,3 +7,4 @@ output/*
 !output/.gitkeep
 data/input/images/.DS_Store
 data/input/videos/.DS_Store
+.env
