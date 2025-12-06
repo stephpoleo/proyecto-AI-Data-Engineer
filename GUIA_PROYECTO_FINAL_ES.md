@@ -50,6 +50,115 @@ make install
 source venv/bin/activate
 ```
 
+> **⚠️ NOTA IMPORTANTE - Levantamiento de Hadoop y Hive en WSL:**
+>
+> Después de instalar las dependencias y **antes de ejecutar el proyecto**, asegúrate de que el cluster Hadoop esté funcionando correctamente en WSL:
+>
+> ```bash
+> # Verificar servicios de Hadoop corriendo
+> jps
+> 
+> # Deberías ver procesos como:
+> # - NameNode
+> # - DataNode
+> # - ResourceManager
+> # - NodeManager
+> # - SecondaryNameNode
+> # - HiveServer2 (si Hive ya está iniciado)
+> 
+> # Si no están corriendo, iniciar servicios necesarios:
+> start-dfs.sh       # Inicia HDFS (NameNode, DataNode)
+> start-yarn.sh      # Inicia YARN (ResourceManager, NodeManager)
+> ```
+>
+> **🔧 PASO CRÍTICO - Inicializar Metastore de Hive:**
+>
+> Antes de iniciar HiveServer2 por primera vez, **debes inicializar el schema del metastore**:
+>
+> ```bash
+> # Para instalación nueva (primera vez):
+> schematool -dbType derby -initSchema
+> 
+> # Si el schema ya existe pero está corrupto o desactualizado:
+> # Opción 1: Validar estado actual
+> schematool -dbType derby -info
+> 
+> # Opción 2: Eliminar y recrear (reseteo completo)
+> rm -rf metastore_db/ ~/metastore_db/ /tmp/metastore_db/ 2>/dev/null
+> schematool -dbType derby -initSchema
+> ```
+>
+> **Nota:** Cambia `derby` por tu tipo de base de datos si usas MySQL (`mysql`) o PostgreSQL (`postgres`).
+>
+> **🗂️ Configuración de Directorios HDFS para Hive:**
+>
+> Hive necesita directorios específicos en HDFS con los permisos correctos:
+>
+> ```bash
+> # Crear directorios necesarios en HDFS
+> hdfs dfs -mkdir -p /tmp
+> hdfs dfs -mkdir -p /user/hive/warehouse
+> 
+> # Configurar permisos (muy importante)
+> hdfs dfs -chmod 1777 /tmp
+> hdfs dfs -chmod g+w /user/hive/warehouse
+> hdfs dfs -chmod g+w /user
+> hdfs dfs -chmod g+wx /user
+> hdfs dfs -chmod g+w /tmp
+> hdfs dfs -chmod g+wx /tmp
+> 
+> # Crear y configurar directorios del proyecto
+> hdfs dfs -mkdir -p /project
+> hdfs dfs -chmod g+w /project
+> hdfs dfs -chmod g+wx /project
+> hdfs dfs -mkdir -p /project/database
+> hdfs dfs -chmod g+w /project/database
+> hdfs dfs -chmod g+wx /project/database
+> hdfs dfs -mkdir -p /project/tables
+> hdfs dfs -chmod g+w /project/tables
+> hdfs dfs -chmod g+wx /project/tables
+> ```
+>
+> Sin estos directorios y permisos, Hive no podrá crear tablas ni almacenar datos correctamente.
+>
+> **Después de inicializar el metastore, inicia HiveServer2:**
+>
+> ```bash
+> # Iniciar HiveServer2 (necesario para la conexión)
+> hive --service hiveserver2 &
+> 
+> # Esperar 10-15 segundos para que inicie completamente
+> sleep 15
+> 
+> # Verificar que el puerto 10000 esté escuchando
+> netstat -tlnp 2>/dev/null | grep 10000
+> 
+> # Verificar que todos los servicios estén activos
+> jps
+> ```
+>
+> **🗄️ Crear Base de Datos del Proyecto con Beeline:**
+>
+> Una vez que HiveServer2 esté corriendo, debes crear la base de datos `yolo_db` manualmente con Beeline:
+>
+> ```bash
+> # Conectarse a Beeline (reemplaza "tu_usuario" con tu usuario de sistema)
+> beeline -u "jdbc:hive2://localhost:10000/default" -n tu_usuario
+> 
+> # Dentro de Beeline, ejecutar:
+> CREATE DATABASE yolo_db;
+> 
+> # Verificar que se creó correctamente
+> SHOW DATABASES;
+> 
+> # Salir de Beeline
+> !quit
+> ```
+>
+> **Importante:** La base de datos `yolo_db` debe existir **antes** de ejecutar `python main.py`, ya que el sistema intentará conectarse a ella para crear las tablas.
+>
+> Sin el metastore inicializado, estos servicios corriendo y la base de datos creada, el sistema ETL **no podrá conectarse a Hive** y fallará durante la carga de datos.
+
 ### 3. Verificar Instalación
 ```bash
 # Ejecutar pipeline completo de desarrollo
@@ -511,3 +620,51 @@ RESULTADOS: People per video
 - ✅ **Lotes de 10 segundos**: Para videos según especificación
 - ✅ **Consultas analíticas**: 5 consultas automáticas en Hive
 - ✅ **Buenas prácticas**: Makefile, tests, linting, documentación
+
+---
+
+## 🛑 Apagado de Servicios
+
+> **⚠️ IMPORTANTE - Apagar Servicios al Terminar:**
+>
+> Al finalizar el trabajo con el proyecto, es fundamental apagar correctamente los servicios de Hadoop y Hive para liberar recursos del sistema:
+
+### Detener Servicios de Hadoop y Hive:
+
+```bash
+# 1. Detener HiveServer2 (si está corriendo en segundo plano)
+# Buscar el PID del proceso HiveServer2 o RunJar
+jps | grep -E "RunJar|HiveServer2"
+
+# Matar el proceso (reemplaza XXXX con el PID mostrado)
+kill XXXX
+
+# O si está en primer plano, presionar Ctrl+C en la terminal
+
+# 2. Detener servicios YARN
+stop-yarn.sh
+
+# 3. Detener servicios HDFS
+stop-dfs.sh
+
+# 4. Verificar que todos los servicios se hayan detenido
+jps
+# Solo debería aparecer "Jps" en la lista
+```
+
+### Orden Recomendado de Apagado:
+1. **HiveServer2** - Primero detener Hive
+2. **YARN** - Luego detener el gestor de recursos
+3. **HDFS** - Finalmente detener el sistema de archivos
+
+### Verificación de Servicios Detenidos:
+
+```bash
+# Verificar que no queden procesos de Hadoop/Hive
+jps
+
+# Debería mostrar solo:
+# XXXX Jps
+```
+
+> **💡 Consejo:** Si planeas volver a usar el proyecto pronto, puedes dejar los servicios corriendo. Sin embargo, para sesiones largas sin uso o para liberar RAM, es recomendable apagarlos.

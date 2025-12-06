@@ -1,5 +1,5 @@
 CREATE DATABASE IF NOT EXISTS yolo_db
-LOCATION 'hdfs:///cursobsg/database/yolo_db.db';
+LOCATION 'hdfs:///project/database/yolo_db.db';
 
 USE yolo_db;
 
@@ -39,5 +39,5 @@ CREATE EXTERNAL TABLE IF NOT EXISTS yolo_objects (
   time_window_10s      INT
 )
 STORED AS PARQUET
-LOCATION 'hdfs:///cursobsg/tables/yolo_objects';
+LOCATION 'hdfs:///project/tables/yolo_objects';
 

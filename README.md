@@ -17,6 +17,31 @@ Este proyecto integra **Deep Learning**, **Visión por Computador** y **Procesam
 
 ---
 
+## 🎬 Demostración del Sistema
+
+### 🎥 Detección en Video
+Sistema de clasificación procesando video en tiempo real con detecciones YOLO:
+
+![Demo de detección en video](https://github.com/stephpoleo/proyecto-AI-Data-Engineer/blob/main/.github/images/video-detections.gif?raw=true)
+
+*Video: Detección de objetos frame por frame con bounding boxes y extracción de atributos*
+
+### 📊 Pipeline ETL en Acción
+
+#### Carga de Datos CSV a Hadoop/Hive
+![Carga de datos desde CSV hacia Hive](https://github.com/stephpoleo/proyecto-AI-Data-Engineer/blob/main/.github/images/load_csv_to_hadoop.jpg?raw=true)
+*Proceso de transformación y carga de detecciones a Apache Hive*
+
+#### Inserción en Hive
+![Inserción de datos en tablas Hive](https://github.com/stephpoleo/proyecto-AI-Data-Engineer/blob/main/.github/images/load_data_to_hive.jpg?raw=true)
+*Carga por lotes sin duplicados en tabla YOLO*
+
+#### Resultados de Consultas Analíticas
+![Consultas analíticas ejecutadas automáticamente](https://github.com/stephpoleo/proyecto-AI-Data-Engineer/blob/main/.github/images/query_and_results_example.jpg?raw=true)
+*Ejemplo de queries: objetos por clase, personas por video, distribución de colores*
+
+---
+
 ## 🏗️ Arquitectura del Proyecto
 
 ```
